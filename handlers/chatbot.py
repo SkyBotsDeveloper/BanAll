@@ -158,27 +158,8 @@ class ChatbotHandler:
         if last is not None and now - last < self.config.CHATBOT_GROUP_COOLDOWN_SECONDS:
             return False
 
-        if self.config.CHATBOT_GROUP_REPLY_ALL:
-            return True
-
-        text_lower = message.text.lower()
-
-        if self.config.CHATBOT_TRIGGER_PREFIX and text_lower.startswith(
-            self.config.CHATBOT_TRIGGER_PREFIX.lower()
-        ):
-            return True
-
-        if self._bot_username and f"@{self._bot_username}" in text_lower:
-            return True
-
-        if message.reply_to_message and message.reply_to_message.from_user:
-            if message.reply_to_message.from_user.id == self._bot_id:
-                return True
-
-        if getattr(message, "mentioned", False):
-            return True
-
-        return False
+        # In groups, respond to normal user text directly.
+        return True
 
     def _build_system_prompt(self, display_name: str) -> str:
         persona_name = self.config.CHATBOT_PERSONA_NAME

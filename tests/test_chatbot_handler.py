@@ -139,7 +139,7 @@ def test_chatbot_replies_in_group_with_prefix():
     asyncio.run(scenario())
 
 
-def test_chatbot_ignores_group_without_trigger_when_reply_all_disabled():
+def test_chatbot_replies_in_group_even_when_reply_all_disabled():
     async def scenario():
         cfg = _config()
         cfg.CHATBOT_GROUP_REPLY_ALL = False
@@ -156,7 +156,7 @@ def test_chatbot_ignores_group_without_trigger_when_reply_all_disabled():
         message = DummyMessage("hello everyone", chat_type="group")
         await handler.handle_message(message)
 
-        assert message.replies == []
+        assert message.replies == ["stubbed reply"]
 
     asyncio.run(scenario())
 
