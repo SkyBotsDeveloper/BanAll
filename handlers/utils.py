@@ -28,9 +28,8 @@ class Utils:
         return self.config.is_sudo_user(user_id)
 
     def can_use_chatbot(self, user_id: int) -> bool:
-        if self.config.CHATBOT_ALLOW_SUDO:
-            return True
-        return not self.is_sudo_user(user_id)
+        # Chatbot should be available to all human users (including sudo) by default.
+        return True
 
     async def ensure_privileged_access(
         self,

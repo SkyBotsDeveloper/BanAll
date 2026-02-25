@@ -55,17 +55,21 @@ class ChatbotHandler:
         if not self.config.CHATBOT_ENABLED:
             return
 
-        if message.from_user is None or not message.text:
+        if message.from_user is None:
             return
 
         if message.from_user.is_bot:
             return
 
-        if message.text.startswith("/"):
+        content = (message.text or message.caption or "").strip()
+        if not content:
+            return
+
+        if content.startswith("/"):
             return
 
         # Keep destructive bang-commands out of chatbot flow.
-        first_token = message.text.strip().split()[0].lower()
+        first_token = content.split()[0].lower()
         if first_token in {"!banall", "!nukeall"}:
             return
 
@@ -88,9 +92,9 @@ class ChatbotHandler:
             deque(maxlen=max(2, self.config.CHATBOT_HISTORY_SIZE * 2)),
         )
 
-        history.append({"role": "user", "content": message.text.strip()})
+        history.append({"role": "user", "content": content})
 
-        user_input = message.text.strip()
+        user_input = content
         display_name = message.from_user.first_name or "friend"
         system_prompt = self._build_system_prompt(
             display_name=display_name
@@ -131,7 +135,7 @@ class ChatbotHandler:
             chat_id,
             user_id,
             {
-                "input_len": len(message.text),
+                "input_len": len(content),
                 "output_len": len(reply),
                 "chat_type": message.chat.type,
             },

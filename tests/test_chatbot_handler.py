@@ -52,10 +52,12 @@ class DummyMessage:
         chat_type: str = "private",
         chat_id: int = 1,
         user_id: int = 2,
+        caption: str | None = None,
         mentioned: bool = False,
         reply_to_message=None,
     ):
         self.text = text
+        self.caption = caption
         self.chat = SimpleNamespace(id=chat_id, type=chat_type)
         self.from_user = SimpleNamespace(id=user_id, first_name="User", is_bot=False)
         self.mentioned = mentioned
