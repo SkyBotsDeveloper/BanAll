@@ -86,7 +86,8 @@ class PowerLogger:
                 return json.load(handle)
 
     def _append_jsonl(self, path: Path, payload: Dict[str, Any]) -> None:
-        record = json.dumps(payload, ensure_ascii=True)
+        # `default=str` prevents crashes when details contain enums or framework objects.
+        record = json.dumps(payload, ensure_ascii=True, default=str)
         with self._io_lock:
             with path.open("a", encoding="utf-8") as handle:
                 handle.write(record + "\n")
