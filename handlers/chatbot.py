@@ -72,7 +72,7 @@ class ChatbotHandler:
             chat_id,
             user_id,
             {
-                "chat_type": message.chat.type,
+                "chat_type": self._chat_type_name(message),
                 "preview": content[:80],
             },
         )
@@ -164,11 +164,13 @@ class ChatbotHandler:
         return True
 
     async def _should_respond(self, message: Message) -> bool:
+        chat_type = self._chat_type_name(message)
+
         # Always reply in private chats.
-        if message.chat.type == "private":
+        if chat_type == "private":
             return True
 
-        if message.chat.type not in {"group", "supergroup"}:
+        if chat_type not in {"group", "supergroup"}:
             return False
 
         if message.from_user is None:
@@ -182,6 +184,13 @@ class ChatbotHandler:
 
         # In groups, respond to normal user text directly.
         return True
+
+    @staticmethod
+    def _chat_type_name(message: Message) -> str:
+        raw = str(getattr(message.chat, "type", "")).lower()
+        if "." in raw:
+            raw = raw.split(".")[-1]
+        return raw
 
     def _build_system_prompt(self, display_name: str) -> str:
         persona_name = self.config.CHATBOT_PERSONA_NAME
