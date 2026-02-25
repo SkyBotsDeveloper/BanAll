@@ -156,7 +156,7 @@ class BotApplication:
 
         command_names = {"start", "help", "banall", "nukeall", "stats", "logs"}
 
-        @self.app.on_message((filters.private | filters.group | filters.supergroup) & (filters.text | filters.caption))
+        @self.app.on_message((filters.private | filters.group) & (filters.text | filters.caption))
         async def chatbot_messages(_: Client, message: Message) -> None:
             text_preview = message.text or message.caption or ""
             if not text_preview:
