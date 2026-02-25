@@ -108,6 +108,16 @@ sudo systemctl status banall-bot
 sudo journalctl -u banall-bot -f
 ```
 
+### Gemini health check (must show API usage)
+After sending a few DM/group messages to the bot:
+```bash
+tail -n 120 logs/actions.log | grep GEMINI_REPLY_SUCCESS
+tail -n 120 logs/actions.log | grep CHATBOT_LOCAL_FALLBACK_USED
+tail -n 120 logs/errors.log
+```
+- `GEMINI_REPLY_SUCCESS` present = real API replies are working.
+- Frequent `CHATBOT_LOCAL_FALLBACK_USED` means Gemini is failing; check `.env` key/model values and `errors.log`.
+
 ## Fast Update on VPS
 
 After pushing new commits:

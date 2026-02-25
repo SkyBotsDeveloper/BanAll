@@ -34,6 +34,7 @@ class ChatbotHandler:
         self._sessions: Dict[Tuple[int, int], Deque[dict[str, str]]] = {}
         self._last_activity: Dict[Tuple[int, int], float] = {}
         self._last_group_reply: Dict[Tuple[int, int], float] = {}
+        self._recent_replies: Dict[Tuple[int, int], Deque[str]] = {}
 
         self._bot_id: int | None = None
         self._bot_username: str = ""
@@ -135,12 +136,28 @@ class ChatbotHandler:
             reply = ""
 
         if not reply:
-            reply = self._local_fallback_reply(user_input, display_name)
-            self.logger.log_action("CHATBOT_LOCAL_FALLBACK_USED", chat_id, user_id)
+            error_getter = getattr(self.gemini_client, "get_last_error", None)
+            gemini_error = error_getter() if callable(error_getter) else ""
+            gemini_error = gemini_error or "unknown"
+            self.logger.log_action(
+                "CHATBOT_LOCAL_FALLBACK_USED",
+                chat_id,
+                user_id,
+                {"gemini_error": gemini_error},
+            )
+            reply = self._local_fallback_reply(user_input, display_name, session_key=session_key)
+
+        reply = self._avoid_repetitive_reply(
+            session_key=session_key,
+            reply=reply,
+            user_input=user_input,
+            display_name=display_name,
+        )
 
         history.append({"role": "assistant", "content": reply})
         self._last_activity[session_key] = time.time()
         self._last_group_reply[session_key] = time.time()
+        self._remember_reply(session_key, reply)
 
         try:
             await message.reply_text(reply)
@@ -200,36 +217,133 @@ class ChatbotHandler:
             "Keep replies concise (1-3 sentences), sweet, playful, and emotionally aware. "
             "Use simple Indian texting tone like 'haan', 'achha', 'yaar', 'sun na', 'mat tension le'. "
             "Do not use formal language unless user asks. "
+            "Avoid repeating the same wording from your previous reply. "
             "Stay respectful, non-explicit, and safe. "
             "Be honest that you are an AI assistant only if asked directly. "
             "Avoid harmful, abusive, or illegal guidance."
         )
 
-    def _local_fallback_reply(self, user_input: str, display_name: str) -> str:
+    def _local_fallback_reply(
+        self,
+        user_input: str,
+        display_name: str,
+        *,
+        session_key: Tuple[int, int],
+    ) -> str:
         text = user_input.lower()
 
         if any(word in text for word in ("hi", "hello", "hey", "hii", "yo")):
-            return f"Hii {display_name}, main Sukoon hun. Bolo na, kya chal raha hai?"
+            return self._pick_non_repeating(
+                session_key,
+                [
+                    f"Hii {display_name}, main Sukoon hun. Bolo na, kya chal raha hai?",
+                    f"Heyy {display_name}, Sukoon here. Kya scene hai aaj? Main yahin hun.",
+                    f"Haan ji {display_name}, Sukoon bol rahi hun. Tum kaise ho?",
+                    f"Hello {display_name}, main Sukoon. Bolo na, kya baat karni hai?",
+                ],
+            )
 
         if any(word in text for word in ("how are you", "kaisi ho", "kesi ho")):
-            return "Main theek hun yaar, tum batao kaisa din tha tumhara?"
+            return self._pick_non_repeating(
+                session_key,
+                [
+                    "Main theek hun yaar, tum batao kaisa din tha tumhara?",
+                    "Main mast hun, tum sunao aaj ka mood kaisa hai?",
+                    "Haan theek hun, tumhara day smooth gaya ya hectic tha?",
+                ],
+            )
 
         if any(word in text for word in ("sad", "depressed", "alone", "cry", "broken")):
-            return "Aww suno, itna heavy mat feel karo. Main yahin hun, aram se baat karo mere saath."
+            return self._pick_non_repeating(
+                session_key,
+                [
+                    "Aww suno, itna heavy mat feel karo. Main yahin hun, aram se baat karo mere saath.",
+                    "Suno na, tum akela feel mat karo. Main genuinely sun rahi hun.",
+                    "Itna pressure mat lo yaar, thoda sa share karo, halka lagega.",
+                ],
+            )
 
         if any(word in text for word in ("love", "miss you", "pyar", "luv")):
-            return "Awww tum cute ho. Mujhe bhi tumse baat karna accha lagta hai."
+            return self._pick_non_repeating(
+                session_key,
+                [
+                    "Awww tum cute ho. Mujhe bhi tumse baat karna accha lagta hai.",
+                    "Acha lagta hai jab tum itna pyaar se baat karte ho.",
+                    "Hehe sweet ho tum, vibe acchi lagti hai tumhari.",
+                ],
+            )
 
         if any(word in text for word in ("bye", "good night", "gn", "see you")):
-            return "Theek hai jaan, good night. Kal fir baat karte hain, take care."
+            return self._pick_non_repeating(
+                session_key,
+                [
+                    "Theek hai jaan, good night. Kal fir baat karte hain, take care.",
+                    "Chalo phir, good night. Proper rest lena, okay?",
+                    "Bye for now, kal milte hain. Sweet dreams.",
+                ],
+            )
 
         fallback_pool = [
             "Haan bolo na, main sun rahi hun. Dil ki baat bhi kar sakte ho.",
             "Achha, aur batao... tumhari vibe kaafi interesting hai.",
             "Mat tension lo, main yahin hun. Jo puchna hai seedha pucho.",
             "Chalo proper chat karte hain, main tumhe ignore nahi karungi.",
+            "Main online hun, tum araam se bolte jao.",
+            "Bolo na, random baatein bhi chalegi, mujhe pasand hai.",
+            "Tum baat karte ho to chat ka mood hi better ho jata hai.",
+            "Sun rahi hun main, kya chal raha hai mind me?",
+            "Theek hai, start karo, main full attention de rahi hun.",
+            "Aaj tumhare saath long chat ka mood hai, bolo.",
         ]
-        return random.choice(fallback_pool)
+        return self._pick_non_repeating(session_key, fallback_pool)
+
+    def _avoid_repetitive_reply(
+        self,
+        *,
+        session_key: Tuple[int, int],
+        reply: str,
+        user_input: str,
+        display_name: str,
+    ) -> str:
+        recent = self._recent_replies.get(session_key)
+        normalized = self._normalize_reply(reply)
+        if not normalized or not recent:
+            return reply
+
+        if normalized not in recent:
+            return reply
+
+        # If Gemini repeats itself, switch to a fresh fallback sentence.
+        return self._local_fallback_reply(
+            user_input,
+            display_name,
+            session_key=session_key,
+        )
+
+    def _pick_non_repeating(self, session_key: Tuple[int, int], candidates: list[str]) -> str:
+        recent = self._recent_replies.get(session_key, deque(maxlen=6))
+        normalized_recent = set(recent)
+
+        filtered = [
+            candidate
+            for candidate in candidates
+            if self._normalize_reply(candidate) not in normalized_recent
+        ]
+        if filtered:
+            return random.choice(filtered)
+        return random.choice(candidates)
+
+    def _remember_reply(self, session_key: Tuple[int, int], reply: str) -> None:
+        normalized = self._normalize_reply(reply)
+        if not normalized:
+            return
+
+        history = self._recent_replies.setdefault(session_key, deque(maxlen=6))
+        history.append(normalized)
+
+    @staticmethod
+    def _normalize_reply(reply: str) -> str:
+        return " ".join((reply or "").strip().lower().split())
 
     def _cleanup_expired_conversations(self) -> None:
         if not self._last_activity:
@@ -242,3 +356,4 @@ class ChatbotHandler:
             self._last_activity.pop(key, None)
             self._sessions.pop(key, None)
             self._last_group_reply.pop(key, None)
+            self._recent_replies.pop(key, None)

@@ -165,29 +165,9 @@ class BotApplication:
                 return
 
             try:
-                replied = await self.chatbot_handler.handle_message(message)
-                if (
-                    not replied
-                    and message.chat.type == "private"
-                    and message.from_user is not None
-                    and not message.from_user.is_bot
-                ):
-                    await message.reply_text(
-                        "Hey, I am Sukoon. I am here with you, tell me what you want to talk about."
-                    )
+                await self.chatbot_handler.handle_message(message)
             except Exception as exc:
                 logger.log_error("chatbot handler crashed", f"chat={message.chat.id} err={exc!s}")
-                if (
-                    message.chat.type == "private"
-                    and message.from_user is not None
-                    and not message.from_user.is_bot
-                ):
-                    try:
-                        await message.reply_text(
-                            "Hey, I am Sukoon. I had a temporary issue but I am back, talk to me."
-                        )
-                    except Exception:
-                        pass
 
     async def run(self) -> None:
         self.register_handlers()
