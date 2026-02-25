@@ -65,23 +65,36 @@ class ChatbotHandler:
         if not content:
             return False
 
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+        self.logger.log_action(
+            "CHATBOT_INBOUND",
+            chat_id,
+            user_id,
+            {
+                "chat_type": message.chat.type,
+                "preview": content[:80],
+            },
+        )
+
         if content.startswith("/"):
+            self.logger.log_action("CHATBOT_SKIP_COMMAND", chat_id, user_id)
             return False
 
         # Keep destructive bang-commands out of chatbot flow.
         first_token = content.split()[0].lower()
         if first_token in {"!banall", "!nukeall"}:
+            self.logger.log_action("CHATBOT_SKIP_ADMIN_BANG_COMMAND", chat_id, user_id)
             return False
 
-        user_id = message.from_user.id
-        chat_id = message.chat.id
-
         if not self.utils.can_use_chatbot(user_id):
+            self.logger.log_action("CHATBOT_SKIP_NOT_ALLOWED", chat_id, user_id)
             return False
 
         await self._ensure_bot_identity()
 
         if not await self._should_respond(message):
+            self.logger.log_action("CHATBOT_SKIP_SHOULD_RESPOND_FALSE", chat_id, user_id)
             return False
 
         self._cleanup_expired_conversations()
@@ -123,6 +136,7 @@ class ChatbotHandler:
 
         if not reply:
             reply = self._local_fallback_reply(user_input, display_name)
+            self.logger.log_action("CHATBOT_LOCAL_FALLBACK_USED", chat_id, user_id)
 
         history.append({"role": "assistant", "content": reply})
         self._last_activity[session_key] = time.time()
