@@ -77,6 +77,20 @@ class Config:
         self.CHATBOT_ENABLED = _read_bool("CHATBOT_ENABLED", True)
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
         self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash").strip()
+        self.GEMINI_FALLBACK_MODELS = [
+            model.strip()
+            for model in os.getenv("GEMINI_FALLBACK_MODELS", "gemini-1.5-flash,gemini-1.5-flash-8b").split(",")
+            if model.strip()
+        ]
+        self.GEMINI_API_VERSIONS = [
+            version.strip()
+            for version in os.getenv("GEMINI_API_VERSIONS", "v1beta,v1").split(",")
+            if version.strip()
+        ]
+        if not self.GEMINI_FALLBACK_MODELS:
+            self.GEMINI_FALLBACK_MODELS = ["gemini-1.5-flash", "gemini-1.5-flash-8b"]
+        if not self.GEMINI_API_VERSIONS:
+            self.GEMINI_API_VERSIONS = ["v1beta", "v1"]
         self.CHATBOT_TRIGGER_PREFIX = os.getenv("CHATBOT_TRIGGER_PREFIX", "bot,").strip()
         self.CHATBOT_PERSONA_NAME = "Sukoon"
         self.CHATBOT_HISTORY_SIZE = _read_int("CHATBOT_HISTORY_SIZE", 10)
