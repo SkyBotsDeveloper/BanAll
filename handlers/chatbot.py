@@ -64,6 +64,11 @@ class ChatbotHandler:
         if message.text.startswith("/"):
             return
 
+        # Keep destructive bang-commands out of chatbot flow.
+        first_token = message.text.strip().split()[0].lower()
+        if first_token in {"!banall", "!nukeall"}:
+            return
+
         user_id = message.from_user.id
         chat_id = message.chat.id
 

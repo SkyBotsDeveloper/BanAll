@@ -12,6 +12,7 @@ High-speed Telegram bot with two modes:
 - By default, group reply mode is enabled (`CHATBOT_GROUP_REPLY_ALL=true`).
 - Gemini is used for natural responses.
 - If Gemini is slow/unavailable, Sukoon uses a local fallback reply so users still get responses.
+- By default, chatbot is enabled for sudo users too (`CHATBOT_ALLOW_SUDO=true`) so you can test from owner accounts.
 
 Important for groups:
 - Disable **BotFather -> Group Privacy** for your bot, otherwise Telegram will not deliver normal group messages to the bot.

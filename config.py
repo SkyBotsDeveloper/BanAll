@@ -86,6 +86,7 @@ class Config:
         self.CHATBOT_GROUP_COOLDOWN_SECONDS = _read_float("CHATBOT_GROUP_COOLDOWN_SECONDS", 1.5)
         self.CHATBOT_GROUP_REPLY_ALL = _read_bool("CHATBOT_GROUP_REPLY_ALL", True)
         self.CHATBOT_RESPONSE_TIMEOUT_SECONDS = _read_float("CHATBOT_RESPONSE_TIMEOUT_SECONDS", 12)
+        self.CHATBOT_ALLOW_SUDO = _read_bool("CHATBOT_ALLOW_SUDO", True)
 
         # Performance and scalability
         self.WORKERS = _read_int("WORKERS", 16)

@@ -56,6 +56,18 @@ class BotApplication:
 
         self.started_at = time.time()
 
+    @staticmethod
+    def _is_known_command_text(text: str, known_commands: set[str]) -> bool:
+        stripped = (text or "").strip()
+        if not stripped:
+            return False
+        if stripped[0] not in {"/", "!"}:
+            return False
+
+        token = stripped[1:].split()[0].lower()
+        token = token.split("@")[0]
+        return token in known_commands
+
     def register_handlers(self) -> None:
         @self.app.on_message(filters.command("start"))
         async def start_command(_: Client, message: Message) -> None:
@@ -142,10 +154,15 @@ class BotApplication:
 
             await message.reply_text(text)
 
-        command_names = ["start", "help", "banall", "nukeall", "stats", "logs"]
+        command_names = {"start", "help", "banall", "nukeall", "stats", "logs"}
 
-        @self.app.on_message(filters.text & ~filters.command(command_names, prefixes=["/", "!"]))
+        @self.app.on_message(filters.text)
         async def chatbot_messages(_: Client, message: Message) -> None:
+            if not message.text:
+                return
+            if self._is_known_command_text(message.text, command_names):
+                return
+
             try:
                 await self.chatbot_handler.handle_message(message)
             except Exception as exc:
