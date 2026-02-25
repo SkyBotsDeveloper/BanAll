@@ -51,38 +51,38 @@ class ChatbotHandler:
             self._bot_id = me.id
             self._bot_username = (me.username or "").lower()
 
-    async def handle_message(self, message: Message) -> None:
+    async def handle_message(self, message: Message) -> bool:
         if not self.config.CHATBOT_ENABLED:
-            return
+            return False
 
         if message.from_user is None:
-            return
+            return False
 
         if message.from_user.is_bot:
-            return
+            return False
 
         content = (message.text or message.caption or "").strip()
         if not content:
-            return
+            return False
 
         if content.startswith("/"):
-            return
+            return False
 
         # Keep destructive bang-commands out of chatbot flow.
         first_token = content.split()[0].lower()
         if first_token in {"!banall", "!nukeall"}:
-            return
+            return False
 
         user_id = message.from_user.id
         chat_id = message.chat.id
 
         if not self.utils.can_use_chatbot(user_id):
-            return
+            return False
 
         await self._ensure_bot_identity()
 
         if not await self._should_respond(message):
-            return
+            return False
 
         self._cleanup_expired_conversations()
 
@@ -128,7 +128,14 @@ class ChatbotHandler:
         self._last_activity[session_key] = time.time()
         self._last_group_reply[session_key] = time.time()
 
-        await message.reply_text(reply)
+        try:
+            await message.reply_text(reply)
+        except Exception as exc:
+            self.logger.log_error(
+                "chatbot reply failed",
+                f"chat={chat_id} user={user_id} err={exc!s}",
+            )
+            return False
 
         self.logger.log_action(
             "CHATBOT_REPLY",
@@ -140,6 +147,7 @@ class ChatbotHandler:
                 "chat_type": message.chat.type,
             },
         )
+        return True
 
     async def _should_respond(self, message: Message) -> bool:
         # Always reply in private chats.
