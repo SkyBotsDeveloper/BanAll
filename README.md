@@ -7,10 +7,13 @@ High-speed Telegram bot with two modes:
 ## Core Behavior
 
 ### Regular users
-- `/start` introduces the chat persona.
+- `/start` introduces the chat persona (**Sukoon**).
 - Bot chats in private chats and in groups.
 - By default, group reply mode is enabled (`CHATBOT_GROUP_REPLY_ALL=true`).
 - Gemini is used for natural responses.
+
+Important for groups:
+- Disable **BotFather -> Group Privacy** for your bot, otherwise Telegram will not deliver normal group messages to the bot.
 
 ### Sudo users
 - `/banall` or `!banall`: delete command message (if possible), ban actionable members fast, leave group.
@@ -92,6 +95,8 @@ Mandatory values:
 ```bash
 ./scripts/install_systemd_service.sh banall-bot "$(pwd)" "$(whoami)"
 ```
+
+Note: deployment from `/root/...` is supported by default service settings.
 
 ### Step 5: monitor
 ```bash

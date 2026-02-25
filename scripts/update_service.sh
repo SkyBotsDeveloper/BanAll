@@ -21,6 +21,10 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 
+mkdir -p logs
+touch bot.log
+chmod +x scripts/run_bot.sh
+
 python scripts/preflight.py
 sudo systemctl restart "$SERVICE_NAME"
 sudo systemctl --no-pager --full status "$SERVICE_NAME" || true

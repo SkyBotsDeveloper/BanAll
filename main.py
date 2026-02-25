@@ -75,7 +75,8 @@ class BotApplication:
             await message.reply_text(
                 f"Hey, I am {self.config.CHATBOT_PERSONA_NAME}.\n"
                 "I chat in a friendly girl-style vibe in both DM and groups.\n"
-                "Just talk to me naturally after /start and I will reply."
+                "Just talk to me naturally after /start and I will reply.\n"
+                "If I do not reply in groups, disable BotFather Group Privacy mode."
             )
 
         @self.app.on_message(filters.command("help"))
@@ -94,7 +95,8 @@ class BotApplication:
                     "User commands:\n"
                     "- `/start` welcome message\n"
                     "- `/help` this guide\n\n"
-                    "Chat with me naturally in private chat and in groups."
+                    "Chat with me naturally in private chat and in groups.\n"
+                    "If group replies do not appear, disable BotFather Group Privacy mode."
                 )
 
         @self.app.on_message(filters.command("banall", prefixes=["/", "!"]) & filters.group)

@@ -14,6 +14,10 @@ if [[ ! -f "$TEMPLATE" ]]; then
   exit 1
 fi
 
+mkdir -p "$APP_DIR/logs"
+touch "$APP_DIR/bot.log"
+chmod +x "$APP_DIR/scripts/run_bot.sh"
+
 TMP_FILE="$(mktemp)"
 trap 'rm -f "$TMP_FILE"' EXIT
 

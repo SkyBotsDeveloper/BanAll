@@ -78,7 +78,7 @@ class Config:
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
         self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash").strip()
         self.CHATBOT_TRIGGER_PREFIX = os.getenv("CHATBOT_TRIGGER_PREFIX", "bot,").strip()
-        self.CHATBOT_PERSONA_NAME = os.getenv("CHATBOT_PERSONA_NAME", "Mia").strip()
+        self.CHATBOT_PERSONA_NAME = "Sukoon"
         self.CHATBOT_HISTORY_SIZE = _read_int("CHATBOT_HISTORY_SIZE", 10)
         self.CHATBOT_IDLE_SECONDS = _read_int("CHATBOT_IDLE_SECONDS", 1800)
         self.CHATBOT_MAX_OUTPUT_TOKENS = _read_int("CHATBOT_MAX_OUTPUT_TOKENS", 180)

@@ -19,8 +19,9 @@ KillSignal=SIGINT
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
-ProtectHome=true
-ReadWritePaths=__APP_DIR__/logs __APP_DIR__/bot.log
+# Keep home readable because many deployments run from /root or /home paths.
+ProtectHome=false
+ReadWritePaths=__APP_DIR__ __APP_DIR__/logs
 
 [Install]
 WantedBy=multi-user.target
