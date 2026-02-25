@@ -28,6 +28,17 @@ class DummyGemini:
         return "stubbed reply"
 
 
+class DummyGeminiEmpty:
+    async def start(self):
+        return None
+
+    async def close(self):
+        return None
+
+    async def generate_reply(self, system_prompt, messages):
+        return ""
+
+
 class DummyApp:
     async def get_me(self):
         return SimpleNamespace(id=999, username="mybot")
@@ -63,7 +74,8 @@ def _config():
         CHATBOT_GROUP_COOLDOWN_SECONDS=0,
         CHATBOT_GROUP_REPLY_ALL=True,
         CHATBOT_TRIGGER_PREFIX="bot,",
-        CHATBOT_PERSONA_NAME="Mia",
+        CHATBOT_PERSONA_NAME="Sukoon",
+        CHATBOT_RESPONSE_TIMEOUT_SECONDS=12,
     )
 
 
@@ -142,5 +154,25 @@ def test_chatbot_ignores_group_without_trigger_when_reply_all_disabled():
         await handler.handle_message(message)
 
         assert message.replies == []
+
+    asyncio.run(scenario())
+
+
+def test_chatbot_uses_local_fallback_when_gemini_empty():
+    async def scenario():
+        handler = ChatbotHandler(
+            DummyApp(),
+            _config(),
+            DummyUtils(),
+            DummyLogger(),
+            DummyGeminiEmpty(),
+        )
+
+        await handler.start()
+        message = DummyMessage("hello", chat_type="private")
+        await handler.handle_message(message)
+
+        assert len(message.replies) == 1
+        assert "Sukoon" in message.replies[0]
 
     asyncio.run(scenario())

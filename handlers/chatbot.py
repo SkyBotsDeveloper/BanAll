@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import random
 import time
 from collections import deque
 from typing import Deque, Dict, Tuple
@@ -83,24 +85,35 @@ class ChatbotHandler:
 
         history.append({"role": "user", "content": message.text.strip()})
 
+        user_input = message.text.strip()
+        display_name = message.from_user.first_name or "friend"
         system_prompt = self._build_system_prompt(
-            display_name=message.from_user.first_name or "friend"
+            display_name=display_name
         )
 
         try:
-            reply = await self.gemini_client.generate_reply(
-                system_prompt,
-                list(history),
+            reply = await asyncio.wait_for(
+                self.gemini_client.generate_reply(
+                    system_prompt,
+                    list(history),
+                ),
+                timeout=self.config.CHATBOT_RESPONSE_TIMEOUT_SECONDS,
             )
+        except asyncio.TimeoutError:
+            self.logger.log_error(
+                "chatbot timeout",
+                f"chat={chat_id} user={user_id} timeout={self.config.CHATBOT_RESPONSE_TIMEOUT_SECONDS}s",
+            )
+            reply = ""
         except Exception as exc:
             self.logger.log_error(
                 "chatbot call failed",
                 f"chat={chat_id} user={user_id} err={exc!s}",
             )
-            reply = "I hit a temporary issue. Ask me again in a moment."
+            reply = ""
 
         if not reply:
-            reply = "I am here with you. Ask me another way and I will try again."
+            reply = self._local_fallback_reply(user_input, display_name)
 
         history.append({"role": "assistant", "content": reply})
         self._last_activity[session_key] = time.time()
@@ -168,6 +181,32 @@ class ChatbotHandler:
             "Be honest that you are an AI assistant if asked directly. "
             "Avoid harmful, abusive, or illegal guidance."
         )
+
+    def _local_fallback_reply(self, user_input: str, display_name: str) -> str:
+        text = user_input.lower()
+
+        if any(word in text for word in ("hi", "hello", "hey", "hii", "yo")):
+            return f"Hey {display_name}, I am Sukoon. I am here with you, tell me what is on your mind."
+
+        if any(word in text for word in ("how are you", "kaisi ho", "kesi ho")):
+            return "I am feeling good and calm. Tell me about your day, I want to hear you."
+
+        if any(word in text for word in ("sad", "depressed", "alone", "cry", "broken")):
+            return "Come here, breathe slowly with me. You are not alone, I am listening to you."
+
+        if any(word in text for word in ("love", "miss you", "pyar", "luv")):
+            return "You are sweet. I like our talks, stay and chat with me a little more."
+
+        if any(word in text for word in ("bye", "good night", "gn", "see you")):
+            return "Good night, take care of yourself. I will be here when you come back."
+
+        fallback_pool = [
+            "I am listening, say it naturally and I will stay with you in this chat.",
+            "Tell me more, I like your vibe and I want to understand you better.",
+            "I am here for you. Ask me anything and I will answer like a real conversation.",
+            "You can talk freely with me, I will reply in a warm and real way.",
+        ]
+        return random.choice(fallback_pool)
 
     def _cleanup_expired_conversations(self) -> None:
         if not self._last_activity:
